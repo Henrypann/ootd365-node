@@ -14,19 +14,24 @@ Local morning-outfit node: private COS object keys and a sidecar wardrobe manife
 | 2 | 本地晨间代理 | 以后 |
 | 3 | Pi 5 编排与晨间屏幕 | 以后 |
 
+## 愿景与路线
+
+长期目标是被动的晨间穿搭系统：早上收到天气和推荐搭配，出门时摄像头读出你穿了什么，你只在认错时纠正。手动登记的衣橱是这套系统的底库。阶段、闸门和边界见 [路线图](docs/roadmap.md)。
+
 ## V0 的边界
 
-下面这些不在 V0 里，本仓库也不给它们留字段或资源：
+下面这些不在 V0 里，本仓库也不给它们留字段或资源。其中有的在路线图里排了后续阶段，进入时开新版本契约，不放宽 `wardrobe-v1`：
 
-- 在线摄像头主路径
-- 自动服装识别
-- 虚拟试衣、虚拟形象
+- 在线摄像头主路径（路线图 V1）
+- 自动服装识别（路线图 V1）
+- 虚拟试衣、虚拟形象（路线图 V3）
+- 向量嵌入（embedding）、检测框（bbox，bounding box）（路线图 V1，本机存放）
 - memo365 的整套能力
-- 向量嵌入（embedding）、检测框（bbox，bounding box）、人脸数据
-- 把 Pi 5 当作图形处理器（GPU，Graphics Processing Unit）
-- 把云端当作主代理
+- 人脸数据（长期不做）
+- 把 Pi 5 当作图形处理器（GPU，Graphics Processing Unit）（长期不做）
+- 把云端当作主代理（长期不做）
 
-人填写的 `acquired_at`、`season`、`wear_count`、`wash_count` 禁止靠看图推断。规则写在 [契约](docs/wardrobe-v1-contract.md)。
+人填写的 `acquired_at`、`season`、`wear_count`、`wash_count` 禁止靠看图推断。规则写在 [契约](docs/wardrobe-v1-contract.md)。路线图说明 V1 起 `wear_count`、`wash_count` 改为由人确认过的事件计算。
 
 ## 隐私
 
@@ -34,6 +39,7 @@ Local morning-outfit node: private COS object keys and a sidecar wardrobe manife
 
 ## 文件
 
+- 路线图与边界地图：[docs/roadmap.md](docs/roadmap.md)
 - 契约（对象键、清单规则、硬约束）：[docs/wardrobe-v1-contract.md](docs/wardrobe-v1-contract.md)
 - JSON Schema（JSON 结构约定）：[schema/wardrobe-v1.schema.json](schema/wardrobe-v1.schema.json)
 - 假样本：[examples/wardrobe-v1.sample.json](examples/wardrobe-v1.sample.json)

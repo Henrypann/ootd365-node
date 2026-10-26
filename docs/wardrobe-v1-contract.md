@@ -136,7 +136,7 @@ CI（`.github/workflows/validate.yml`）在每次推送 `main` 和每个 PR 上�
 
 ## 明确不收录
 
-清单和本仓库都不收录这些：
+`wardrobe-v1` 的清单和本仓库都不收录这些。其中 embedding、识别置信度、虚拟形象资源在 [路线图](roadmap.md) 里排了后续阶段，将以新版本 schema 引入，不会放宽这一版：
 
 - embedding，以及任何向量
 - 人脸数据
