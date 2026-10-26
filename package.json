@@ -1,0 +1,18 @@
+{
+  "name": "ootd365-node",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Private COS object keys and a sidecar wardrobe manifest (V0 knife 1).",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "ajv": "8.17.1"
+  }
+}

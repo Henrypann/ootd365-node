@@ -35,7 +35,7 @@ wardrobe/v1/outfits/{outfit_id}/{asset_id}.{ext}
 
 单品上的每条 `key` 必须落在 `wardrobe/v1/items/` 下，且其中的 `{item_id}` 等于该单品的 `id`。套装上的每条 `key` 必须落在 `wardrobe/v1/outfits/` 下，且其中的 `{outfit_id}` 等于该套装的 `id`。同一条 `cos_keys` 里的 `key` 不得重复。
 
-JSON Schema 校验键的形状：前缀、字符、扩展名，以及 `sha256`。跨字段的两条由写入方保证，schema 表达不了它们：键里的 id 段等于父记录的 `id`；套装的 `item_ids` 每一项都能在同一份清单的 `items` 里找到。
+JSON Schema 校验键的形状：前缀、字符、扩展名，以及 `sha256`。键内 id 段、键不重复这类跨字段规则 schema 表达不了，统一列在下文「跨字段规则」。
 
 仓库里只出现假键。下面这条是假的，桶里没有这个对象：
 
@@ -110,6 +110,30 @@ data/wardrobe-events.json
 
 同一份清单里，每个 `item_ids` 条目都要对应一个 `items[].id`。
 
+## 跨字段规则
+
+下面这些 JSON Schema 表达不了。写入方写清单时保证它们，读取方读清单时再查一遍。[`scripts/validate.mjs`](../scripts/validate.mjs) 先跑 schema，再逐条检查。
+
+1. `items[].id` 在同一份清单里唯一。
+2. `outfits[].id` 在同一份清单里唯一。
+3. 每条 `cos_keys[].key` 里的 id 段等于父记录的 `id`：单品键的 `{item_id}`，套装键的 `{outfit_id}`。
+4. 同一条 `cos_keys` 里的 `key` 不重复。schema 的 `uniqueItems` 只比较整个 `{ key, sha256 }` 对象，同一个键配不同 `sha256` 会漏过去，所以单独查。
+5. 套装 `item_ids` 的每一项都能在同一份清单的 `items` 里找到。
+6. `acquired_at` 是日历上真实存在的日期，`updated_at` 是真实的 UTC 时间。schema 的正则只管形状，`2025-02-30`、`T24:00:00Z` 这类会被拒绝。
+
+规则 1、3、4 合起来保证整份清单里的对象键全局唯一：键里带着父记录 id，父记录 id 又不重复。
+
+运行：
+
+```text
+npm ci
+npm run validate                                # 校验假样本
+node scripts/validate.mjs data/wardrobe-index.json  # 校验节点本机清单
+npm test                                        # 每条规则的反例测试
+```
+
+CI（`.github/workflows/validate.yml`）在每次推送 `main` 和每个 PR 上校验假样本并跑测试。真实清单不入库，CI 不碰它。
+
 ## 明确不收录
 
 清单和本仓库都不收录这些：
@@ -138,7 +162,7 @@ data/wardrobe-events.json
 本地晨间代理（第二刀）和 Pi 5 晨间屏幕（第三刀）以后按这个顺序用清单。本刀没有这段代码。
 
 1. 读本机 `data/wardrobe-index.json`。不读 `examples/wardrobe-v1.sample.json`。
-2. 用 `schema/wardrobe-v1.schema.json` 校验字段形状。读取方同时检查键内 id 与父记录 `id` 一致，并检查每个 `item_ids` 都能在 `items` 里找到。
+2. 用 `schema/wardrobe-v1.schema.json` 校验字段形状，再检查上文「跨字段规则」的每一条。`scripts/validate.mjs` 导出的 `validateIndex` 两步都做。
 3. 用节点本地凭证，从私有桶按 `cos_keys[].key` 取对象。
 4. 对取回的原始字节计算 SHA-256，与记录里的 `sha256` 比较。
 5. 主代理在本地。Pi 5 负责家庭节点上的编排和屏幕，不承担 GPU 推理。云桶只负责存放私有对象。
