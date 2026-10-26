@@ -2,7 +2,7 @@
 
 Private COS object-key rules and the local sidecar wardrobe index (V0 knife 1).
 
-这一份只锁定 V0 第一刀：私有桶里的对象键，以及本地 / Pi 5 上的 sidecar 衣橱清单。sidecar 指放在对象旁边的本地索引，不进桶，也不进 git。第二刀（本地晨间代理）和第三刀（Pi 5 编排与晨间屏幕）以后按这里读数据。本文件不实现它们。
+这一份只锁定 V0 第一刀：私有桶里的对象键，以及本地节点或树莓派 5（Raspberry Pi 5，下文称 Pi 5）上的 sidecar 衣橱清单。sidecar 指放在对象旁边的本地索引，不进桶，也不进 git。第二刀（本地晨间代理）和第三刀（Pi 5 编排与晨间屏幕）以后按这里读数据。本文件不实现它们。
 
 这里的 OSS 若出现在仓库介绍里，指开源软件（Open Source Software）。对象存储是私有 COS（Cloud Object Storage，云对象存储）。本契约不绑定某一家云的 SDK、地域或签名算法。
 
@@ -17,7 +17,7 @@ wardrobe/v1/items/{item_id}/{asset_id}.{ext}
 wardrobe/v1/outfits/{outfit_id}/{asset_id}.{ext}
 ```
 
-路径已经区分单品和套装。清单里不再设 `kind` 字段。
+路径已经区分单品和套装。清单里不设 `kind` 字段。
 
 标识符 `{item_id}`、`{outfit_id}`、`{asset_id}` 使用同一语法：
 
@@ -34,6 +34,8 @@ wardrobe/v1/outfits/{outfit_id}/{asset_id}.{ext}
 样本使用 `jpg`、`png`、`webp`。这一刀不规定转码，也不规定哪一张是封面。`cos_keys` 的数组顺序只是列表顺序。
 
 单品上的每条 `key` 必须落在 `wardrobe/v1/items/` 下，且其中的 `{item_id}` 等于该单品的 `id`。套装上的每条 `key` 必须落在 `wardrobe/v1/outfits/` 下，且其中的 `{outfit_id}` 等于该套装的 `id`。同一条 `cos_keys` 里的 `key` 不得重复。
+
+JSON Schema 校验键的形状：前缀、字符、扩展名，以及 `sha256`。跨字段的两条由写入方保证，schema 表达不了它们：键里的 id 段等于父记录的 `id`；套装的 `item_ids` 每一项都能在同一份清单的 `items` 里找到。
 
 仓库里只出现假键。下面这条是假的，桶里没有这个对象：
 
@@ -91,7 +93,7 @@ data/wardrobe-events.json
 | `cos_keys` | 是 | `{ "key", "sha256" }` 数组，可以为空 | 节点在对象写入时记下。空数组表示还没有对象 |
 | `updated_at` | 是 | UTC（Coordinated Universal Time，协调世界时）时间，`YYYY-MM-DDTHH:MM:SSZ` | 这条清单记录的更新时间 |
 
-`season` 用英文枚举，方便以后的代理直接分支。含义：`spring` 春，`summer` 夏，`autumn` 秋，`winter` 冬。空数组表示人还没填，不是“四季皆宜”，也不是模型判断的结果。
+`season` 用英文枚举，方便以后的代理直接分支。含义：`spring` 春，`summer` 夏，`autumn` 秋，`winter` 冬。空数组表示人还没记录季节。四季都可穿时，写入全部四个值。这个字段禁止视觉推断。
 
 `category` 的含义：`top` 上装，`bottom` 下装，`shoes` 鞋，`outer` 外搭，`other` 其他。人选定分类。自动识别不在 V0。
 
@@ -106,7 +108,7 @@ data/wardrobe-events.json
 | `cos_keys` | 是 | `{ "key", "sha256" }` 数组，可以为空。键前缀是 `wardrobe/v1/outfits/` |
 | `label` | 否 | 1 到 80 个字符的短标签 |
 
-同一份清单里，每个 `item_ids` 条目都要对应一个 `items[].id`。这一刀不规定退役单品能不能留在套装里，屏幕以后自己决定怎么显示。
+同一份清单里，每个 `item_ids` 条目都要对应一个 `items[].id`。
 
 ## 明确不收录
 
@@ -136,7 +138,7 @@ data/wardrobe-events.json
 本地晨间代理（第二刀）和 Pi 5 晨间屏幕（第三刀）以后按这个顺序用清单。本刀没有这段代码。
 
 1. 读本机 `data/wardrobe-index.json`。不读 `examples/wardrobe-v1.sample.json`。
-2. 用 `schema/wardrobe-v1.schema.json` 校验。
+2. 用 `schema/wardrobe-v1.schema.json` 校验字段形状。读取方同时检查键内 id 与父记录 `id` 一致，并检查每个 `item_ids` 都能在 `items` 里找到。
 3. 用节点本地凭证，从私有桶按 `cos_keys[].key` 取对象。
 4. 对取回的原始字节计算 SHA-256，与记录里的 `sha256` 比较。
 5. 主代理在本地。Pi 5 负责家庭节点上的编排和屏幕，不承担 GPU 推理。云桶只负责存放私有对象。
