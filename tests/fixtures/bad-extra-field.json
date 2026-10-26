@@ -1,0 +1,17 @@
+{
+  "schema_version": "wardrobe-v1",
+  "items": [
+    {
+      "id": "demo_item_navy_tee",
+      "category": "top",
+      "season": ["summer"],
+      "color": "navy",
+      "wear_count": 1,
+      "wash_count": 0,
+      "status": "active",
+      "kind": "top",
+      "cos_keys": [],
+      "updated_at": "2026-01-15T08:00:00Z"
+    }
+  ]
+}

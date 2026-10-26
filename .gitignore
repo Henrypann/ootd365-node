@@ -1,7 +1,11 @@
-# 真实 sidecar。只留在本地节点或 Pi 5 上。
+# 真实 sidecar。只留在本地节点上，不进 git。
 data/
 data/wardrobe-index.json
 data/wardrobe-events.json
+
+# 第二刀晨间输出，以及可选的本机天气缓存。
+data/morning/
+data/weather.json
 
 # 凭证与密钥。COS 访问材料永不入库。
 .env
@@ -26,3 +30,10 @@ secrets/
 # 本地工作目录
 local/
 tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.vendor/
