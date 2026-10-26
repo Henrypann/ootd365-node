@@ -1,0 +1,89 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:ootd365/node/node_client.dart';
+import 'package:ootd365/state/wardrobe_store.dart';
+import 'package:ootd365/ui/log_screen.dart';
+
+Map<String, dynamic> _item(String id, String color, {String status = 'active'}) => {
+      'id': id,
+      'category': 'top',
+      'season': [],
+      'color': color,
+      'status': status,
+      'wear_count': 0,
+      'wash_count': 0,
+      'cos_keys': [],
+      'updated_at': '2026-10-26T08:00:00Z',
+    };
+
+/// A tiny in-memory node: two active items, one retired, records posted events.
+class _FakeNode {
+  final posted = <Map<String, dynamic>>[];
+
+  Future<http.Response> handle(http.Request request) async {
+    final path = request.url.path;
+    Object body;
+    if (path == '/v1/index') {
+      body = {
+        'schema_version': 'wardrobe-v1',
+        'items': [_item('item_tee', 'navy'), _item('item_shirt', 'white'), _item('item_old', 'red', status: 'retired')],
+      };
+    } else if (path == '/v1/events' && request.method == 'GET') {
+      body = {'schema_version': 'wardrobe-events-v1', 'events': []};
+    } else if (path == '/v1/events' && request.method == 'POST') {
+      final event = jsonDecode(request.body) as Map<String, dynamic>;
+      posted.add(event);
+      body = {...event, 'id': 'ev_000000000001', 'source': 'manual', 'recorded_at': '2026-10-26T08:00:00Z'};
+    } else {
+      return http.Response('{"error":"not found"}', 404);
+    }
+    return http.Response.bytes(utf8.encode(jsonEncode(body)), 200);
+  }
+}
+
+void main() {
+  testWidgets('log screen: pick items, save one wear event for today', (tester) async {
+    final node = _FakeNode();
+    final store = WardrobeStore(
+      NodeClient(baseUrl: Uri.parse('http://node:8365'), token: 't', client: MockClient(node.handle)),
+    );
+    await tester.runAsync(store.refresh);
+
+    await tester.pumpWidget(MaterialApp(
+      home: LogScreen(store: store, today: () => DateTime(2026, 10, 26, 7, 30)),
+    ));
+
+    // Retired items are not offered.
+    expect(find.text('navy 上装'), findsOneWidget);
+    expect(find.text('white 上装'), findsOneWidget);
+    expect(find.text('red 上装'), findsNothing);
+
+    // Nothing selected: save is disabled.
+    final save = find.byType(FloatingActionButton);
+    expect(tester.widget<FloatingActionButton>(save).onPressed, isNull);
+
+    await tester.tap(find.text('navy 上装'));
+    await tester.tap(find.text('white 上装'));
+    await tester.pump();
+    expect(find.text('记下 2 件'), findsOneWidget);
+
+    await tester.runAsync(() async {
+      await tester.tap(save);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump();
+
+    expect(node.posted, [
+      {
+        'type': 'wear',
+        'date': '2026-10-26',
+        'item_ids': ['item_tee', 'item_shirt'],
+      },
+    ]);
+    expect(find.text('记下 0 件'), findsOneWidget);
+  });
+}

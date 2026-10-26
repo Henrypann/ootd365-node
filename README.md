@@ -45,11 +45,14 @@ Local morning-outfit node: private COS object keys and a sidecar wardrobe manife
 - 假样本：[examples/wardrobe-v1.sample.json](examples/wardrobe-v1.sample.json)
 - 清单校验（schema + 跨字段规则）：[scripts/validate.mjs](scripts/validate.mjs)，测试在 [test/](test/)。`npm ci && npm run validate && npm test`，CI 每个 PR 都跑
 - 本机真实清单（不入库）：`data/wardrobe-index.json`
-- 事件规则（另文件；V0 只登记路径，不定义内容）：`data/wardrobe-events.json`
+- 事件契约（穿着、洗涤日志，镜子照片键）：[docs/wardrobe-events-v1-contract.md](docs/wardrobe-events-v1-contract.md)，schema 在 [schema/wardrobe-events-v1.schema.json](schema/wardrobe-events-v1.schema.json)，假样本在 [examples/wardrobe-events-v1.sample.json](examples/wardrobe-events-v1.sample.json)
+- 本机真实事件日志（不入库）：`data/wardrobe-events.json`
+- 家庭节点（局域网 HTTP，保管清单、日志和照片）：[server/](server/)，接口见 [docs/node-api.md](docs/node-api.md)。`npm run serve`
+- 手机 app（Flutter，Android 与 iOS）：[app/](app/)
 
 ## 以后谁来读
 
-第二刀的本地晨间代理和第三刀的 Pi 5 晨间屏幕，都读节点本机的 `data/wardrobe-index.json`。它们用这份 schema 校验清单，用节点本地凭证按 `cos_keys[].key` 从私有桶取对象，再用 `sha256` 核对原始字节。`sha256` 是 SHA-256（安全散列算法，256 位）的小写十六进制摘要。它们不把 `examples/` 里的假数据当成衣橱。读法和不变量见契约。这一刀没有代理、屏幕或上传代码，只有清单校验脚本。
+第二刀的本地晨间代理和第三刀的 Pi 5 晨间屏幕，都读节点本机的 `data/wardrobe-index.json`。它们用这份 schema 校验清单，用节点本地凭证按 `cos_keys[].key` 从私有桶取对象，再用 `sha256` 核对原始字节。`sha256` 是 SHA-256（安全散列算法，256 位）的小写十六进制摘要。它们不把 `examples/` 里的假数据当成衣橱。读法和不变量见契约。晨间代理和屏幕还没有。现在有的是清单校验、家庭节点和用来每天记录的手机 app。
 
 ## 许可
 

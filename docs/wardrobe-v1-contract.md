@@ -58,7 +58,7 @@ wardrobe/v1/items/demo_item_navy_tee/demo_asset_front.jpg
 | `data/wardrobe-index.json` | 节点本机的真实清单。gitignore。可以不存在（空衣橱由节点自己建）。 |
 | `schema/wardrobe-v1.schema.json` | 清单的 JSON Schema。入库。 |
 | `examples/wardrobe-v1.sample.json` | 假样本。入库。不是活数据。 |
-| `data/wardrobe-events.json` | 事件规则的预留路径。见下文。gitignore。 |
+| `data/wardrobe-events.json` | 穿着、洗涤事件日志。见 [事件 V1 契约](wardrobe-events-v1-contract.md)。gitignore。 |
 
 真实清单是 UTF-8 编码的 JSON 对象，形状由 schema 固定：
 
@@ -70,13 +70,13 @@ schema 拒绝未声明的属性。因此 embedding、人脸、bbox、自动识�
 
 ## 事件规则
 
-事件规则用另一个文件，不写进衣橱清单。V0 第一刀只登记路径：
+事件用另一个文件，不写进衣橱清单：
 
 ```text
 data/wardrobe-events.json
 ```
 
-这一刀不定义该文件的字段、schema 或样本。文件可以不存在。代理和屏幕在以后的刀里再决定要不要读它。
+字段、schema、镜子照片的对象键（`wardrobe/v1/looks/`）和计数规则见 [事件 V1 契约](wardrobe-events-v1-contract.md)。
 
 ## 单品字段
 
@@ -167,4 +167,4 @@ CI（`.github/workflows/validate.yml`）在每次推送 `main` 和每个 PR 上�
 4. 对取回的原始字节计算 SHA-256，与记录里的 `sha256` 比较。
 5. 主代理在本地。Pi 5 负责家庭节点上的编排和屏幕，不承担 GPU 推理。云桶只负责存放私有对象。
 
-事件规则仍走 `data/wardrobe-events.json`。在那份文件有契约之前，代理和屏幕不需要它也能遵守本文件。
+事件走 `data/wardrobe-events.json`，按 [事件 V1 契约](wardrobe-events-v1-contract.md) 读。

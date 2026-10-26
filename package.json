@@ -10,6 +10,7 @@
   },
   "scripts": {
     "validate": "node scripts/validate.mjs",
+    "serve": "node server/main.mjs",
     "test": "node --test"
   },
   "devDependencies": {

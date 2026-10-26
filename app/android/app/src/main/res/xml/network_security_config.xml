@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- V0 的节点在家庭局域网里用明文 HTTP，地址是用户自己填的局域网 IP，
+     Android 的 domain-config 不能按网段放行，所以这里整体允许明文。
+     节点不要映射到公网。以后节点上 HTTPS 时删掉这一条。 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

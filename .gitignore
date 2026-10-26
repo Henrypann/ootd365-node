@@ -29,3 +29,7 @@ tmp/
 
 # Node 依赖
 node_modules/
+
+# Flutter 工程自带的图标和启动图要入库，它们不是衣橱照片。
+!app/android/**/*.png
+!app/ios/**/*.png

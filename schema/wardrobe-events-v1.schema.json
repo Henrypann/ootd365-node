@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Henrypann/ootd365-node/schema/wardrobe-events-v1.schema.json",
+  "title": "WardrobeEventsV1",
+  "description": "Append-only wear and wash log on the local node (V0). Every event is recorded by a person; source is manual only in this version. Unknown properties are rejected, including confidence, embedding, face, and bbox.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "events"],
+  "properties": {
+    "schema_version": {
+      "const": "wardrobe-events-v1"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+    },
+    "lookKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "sha256"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^wardrobe/v1/looks/[a-z0-9][a-z0-9_-]{0,63}/[a-z0-9][a-z0-9_-]{0,63}\\.[a-z0-9]{1,8}$",
+          "description": "Node-local object key of a mirror photo. The event_id segment must equal the parent event id. Writers must not overwrite an existing key."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase hex SHA-256 of the original photo bytes (Iris Fix)."
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "date", "item_ids", "source", "recorded_at"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "enum": ["wear", "wash"]
+        },
+        "date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Local calendar day the items were worn or washed."
+        },
+        "item_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "description": "Each entry must match an items[].id in the wardrobe index."
+        },
+        "source": {
+          "enum": ["manual"],
+          "description": "Who recorded the event. camera and confidence arrive in a later contract version."
+        },
+        "recorded_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "description": "UTC time the event was written, Z suffix."
+        },
+        "look_key": {
+          "$ref": "#/$defs/lookKey"
+        }
+      }
+    }
+  }
+}
