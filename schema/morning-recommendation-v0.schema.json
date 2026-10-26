@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Henrypann/ootd365-node/schema/morning-recommendation-v0.schema.json",
+  "title": "MorningRecommendationV0",
+  "description": "V0 knife 2 output written to data/morning/YYYY-MM-DD.json. Image references are copied verbatim as {key, sha256} from the wardrobe index. reason tags are closed rule labels (weather, season, wear_count, status). Failures use the same path and carry error instead of an invented outfit. This file does not add wardrobe-v1 fields.",
+  "oneOf": [
+    { "$ref": "#/$defs/success" },
+    { "$ref": "#/$defs/failure" }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+    },
+    "cosKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "sha256"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^wardrobe/v1/(items|outfits)/[a-z0-9][a-z0-9_-]{0,63}/[a-z0-9][a-z0-9_-]{0,63}\\.[a-z0-9]{1,8}$",
+          "description": "Object key copied from the index. Not a URL and not a thumbnail path."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 copied from the index (Iris Fix digest of the original bytes). This knife does not recompute it."
+        }
+      }
+    },
+    "success": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "text", "item_ids", "cos_keys", "reason", "generated_at"],
+      "properties": {
+        "date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 320,
+          "pattern": "^今天穿(上装|下装|外搭|鞋) [a-z0-9][a-z0-9_-]{0,63}(、(上装|下装|外搭|鞋) [a-z0-9][a-z0-9_-]{0,63}){1,3}。$",
+          "description": "One closed Chinese sentence. Category labels and ids only, so visual prose cannot pass."
+        },
+        "item_ids": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "outfit_id": { "$ref": "#/$defs/id" },
+        "cos_keys": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/cosKey" },
+          "description": "Verbatim {key, sha256} copies for the selected items, then the matched outfit if outfit_id is set. Empty when those records have no objects. No hashless thumbnail and no URL."
+        },
+        "reason": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "pattern": "^(只选 status=active|需要上装和下装|有鞋则选一双|并列时取更低 wear_count|未提供季节，不过滤|季节：(spring|summer|autumn|winter)（(命令行|天气缓存)）|未提供天气|无天气，不因寒冷加外搭|气温：-?[0-9]+(\\.[0-9]{1,4})?°C|天气状况：[a-z][a-z0-9_-]{0,31}|冷天加外搭|冷天无可用外搭|非冷天，不选外搭|已选鞋|无可用鞋|事件文件不存在，已跳过|已忽略事件规则|事件规则无排除|事件排除：[a-z0-9][a-z0-9_-]{0,63}|命中清单套装 [a-z0-9][a-z0-9_-]{0,63}|未命中已有套装)$"
+          }
+        },
+        "generated_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "error", "generated_at"],
+      "properties": {
+        "date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "error": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "generated_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      }
+    }
+  }
+}
