@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Henrypann/ootd365-node/schema/wardrobe-v1.schema.json",
+  "title": "WardrobeV1Index",
+  "description": "Local/Pi sidecar index for private COS wardrobe objects (V0 knife 1). Human-filled fields acquired_at, season, wear_count, and wash_count must not be visually inferred. SHA-256 is the digest of the original object bytes (Iris Fix). Unknown properties are rejected, including embedding, face, bbox, auto-id confidence, avatar assets, and kind.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "items"],
+  "properties": {
+    "schema_version": {
+      "const": "wardrobe-v1"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    },
+    "outfits": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/outfit"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Lowercase hex SHA-256 of the original object bytes (Iris Fix)."
+    },
+    "itemCosKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "sha256"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^wardrobe/v1/items/[a-z0-9][a-z0-9_-]{0,63}/[a-z0-9][a-z0-9_-]{0,63}\\.[a-z0-9]{1,8}$",
+          "description": "Private-bucket object key. The item_id segment must equal the parent item id. Writers must not overwrite an existing key."
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "outfitCosKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "sha256"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^wardrobe/v1/outfits/[a-z0-9][a-z0-9_-]{0,63}/[a-z0-9][a-z0-9_-]{0,63}\\.[a-z0-9]{1,8}$",
+          "description": "Private-bucket object key. The outfit_id segment must equal the parent outfit id. Writers must not overwrite an existing key."
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "season",
+        "color",
+        "wear_count",
+        "wash_count",
+        "status",
+        "cos_keys",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "category": {
+          "enum": ["top", "bottom", "shoes", "outer", "other"],
+          "description": "Recorded by a person. V0 has no automatic garment identification."
+        },
+        "season": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 4,
+          "items": {
+            "enum": ["spring", "summer", "autumn", "winter"]
+          },
+          "description": "Human-filled. Must not be visually inferred. An empty array means a person has not recorded a season yet."
+        },
+        "color": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Short color label written by a person."
+        },
+        "acquired_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Optional calendar date recorded by a person. Must not be visually inferred or backfilled from file timestamps."
+        },
+        "wear_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Human-maintained wear count. Must not be visually inferred. Zero means a recorded zero."
+        },
+        "wash_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Human-maintained wash count. Must not be visually inferred. Zero means a recorded zero."
+        },
+        "status": {
+          "enum": ["active", "retired"]
+        },
+        "cos_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/itemCosKey"
+          }
+        },
+        "updated_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "description": "UTC timestamp of this manifest record, Z suffix."
+        }
+      }
+    },
+    "outfit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "item_ids", "cos_keys"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "item_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "description": "Each entry must match an items[].id in the same index file."
+        },
+        "cos_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/outfitCosKey"
+          }
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      }
+    }
+  }
+}

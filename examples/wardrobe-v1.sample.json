@@ -1,0 +1,109 @@
+{
+  "schema_version": "wardrobe-v1",
+  "items": [
+    {
+      "id": "demo_item_navy_tee",
+      "category": "top",
+      "season": ["spring", "summer"],
+      "color": "navy",
+      "acquired_at": "2025-04-12",
+      "wear_count": 4,
+      "wash_count": 1,
+      "status": "active",
+      "cos_keys": [
+        {
+          "key": "wardrobe/v1/items/demo_item_navy_tee/demo_asset_front.jpg",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "key": "wardrobe/v1/items/demo_item_navy_tee/demo_asset_detail.png",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "updated_at": "2026-01-15T08:00:00Z"
+    },
+    {
+      "id": "demo_item_grey_trousers",
+      "category": "bottom",
+      "season": ["autumn", "winter"],
+      "color": "grey",
+      "wear_count": 0,
+      "wash_count": 0,
+      "status": "active",
+      "cos_keys": [
+        {
+          "key": "wardrobe/v1/items/demo_item_grey_trousers/demo_asset_flat.jpg",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "updated_at": "2026-01-15T08:00:00Z"
+    },
+    {
+      "id": "demo_item_white_sneakers",
+      "category": "shoes",
+      "season": ["spring", "summer", "autumn"],
+      "color": "white",
+      "acquired_at": "2024-09-01",
+      "wear_count": 12,
+      "wash_count": 2,
+      "status": "active",
+      "cos_keys": [
+        {
+          "key": "wardrobe/v1/items/demo_item_white_sneakers/demo_asset_side.webp",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "updated_at": "2026-01-15T08:00:00Z"
+    },
+    {
+      "id": "demo_item_black_coat",
+      "category": "outer",
+      "season": ["winter"],
+      "color": "black",
+      "acquired_at": "2022-01-10",
+      "wear_count": 30,
+      "wash_count": 3,
+      "status": "retired",
+      "cos_keys": [
+        {
+          "key": "wardrobe/v1/items/demo_item_black_coat/demo_asset_front.jpg",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      ],
+      "updated_at": "2026-01-15T08:00:00Z"
+    },
+    {
+      "id": "demo_item_canvas_belt",
+      "category": "other",
+      "season": [],
+      "color": "khaki",
+      "wear_count": 0,
+      "wash_count": 0,
+      "status": "active",
+      "cos_keys": [
+        {
+          "key": "wardrobe/v1/items/demo_item_canvas_belt/demo_asset_flat.png",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "updated_at": "2026-01-15T08:00:00Z"
+    }
+  ],
+  "outfits": [
+    {
+      "id": "demo_outfit_monday",
+      "item_ids": [
+        "demo_item_navy_tee",
+        "demo_item_grey_trousers",
+        "demo_item_white_sneakers"
+      ],
+      "label": "周一演示（假）",
+      "cos_keys": [
+        {
+          "key": "wardrobe/v1/outfits/demo_outfit_monday/demo_asset_board.jpg",
+          "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        }
+      ]
+    }
+  ]
+}

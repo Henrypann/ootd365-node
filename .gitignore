@@ -1,0 +1,28 @@
+# 真实 sidecar。只留在本地节点或 Pi 5 上。
+data/
+data/wardrobe-index.json
+data/wardrobe-events.json
+
+# 凭证与密钥。COS 访问材料永不入库。
+.env
+.env.*
+credentials.json
+credentials/
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 衣橱照片只进私有桶，不进仓库。
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
+*.heic
+*.heif
+
+# 本地工作目录
+local/
+tmp/
