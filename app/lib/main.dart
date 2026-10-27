@@ -4,6 +4,7 @@ import 'node/node_client.dart';
 import 'node/node_settings.dart';
 import 'state/wardrobe_store.dart';
 import 'ui/connect_screen.dart';
+import 'ui/design/tokens.dart';
 import 'ui/home_shell.dart';
 
 void main() {
@@ -17,8 +18,10 @@ class OotdApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ootd365',
-      theme: ThemeData(colorSchemeSeed: const Color(0xFF3B4A6B)),
-      darkTheme: ThemeData(colorSchemeSeed: const Color(0xFF3B4A6B), brightness: Brightness.dark),
+      debugShowCheckedModeBanner: false,
+      // One warm paper theme. A dark variant waits until the light system has settled on real photos.
+      theme: buildTheme(),
+      themeMode: ThemeMode.light,
       home: const _Root(),
     );
   }
@@ -87,7 +90,11 @@ class _RootState extends State<_Root> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (!_loaded) {
+      return const Scaffold(
+        body: Center(child: Text('ootd365', style: TextStyle(fontFamily: OType.serif, fontSize: 40, color: OColors.ink))),
+      );
+    }
     final store = _store;
     if (store == null) return ConnectScreen(onConnected: _connected);
     // A new key per connection so the shell reloads from the new node.

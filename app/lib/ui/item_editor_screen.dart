@@ -1,8 +1,11 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../contract/models.dart';
 import '../node/node_client.dart';
 import '../state/wardrobe_store.dart';
+import 'design/components.dart';
+import 'design/tokens.dart';
 import 'widgets.dart';
 
 /// Registers a new item, or edits the human fields of an existing one.
@@ -19,6 +22,7 @@ class ItemEditorScreen extends StatefulWidget {
 
 class _ItemEditorScreenState extends State<ItemEditorScreen> {
   static const _maxNewPhotos = 3;
+  static const _tileWidth = 96.0;
 
   // Allocated once, so a retry after a failed photo upload updates the same item.
   late final String _id = widget.item?.id ?? ContractIds.newItemId();
@@ -47,10 +51,10 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: _acquiredAt == null ? now : ODate.parse(_acquiredAt!),
       firstDate: DateTime(1950),
       lastDate: now,
-      helpText: '什么时候买的（不确定就别填）',
+      helpText: '什么时候入手的（不确定就别填）',
     );
     if (picked != null) setState(() => _acquiredAt = contractDate(picked));
   }
@@ -66,7 +70,7 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
     try {
       fields.check();
     } on ContractError catch (e) {
-      showError(context, e.message);
+      showMessage(context, e.message);
       return;
     }
     setState(() => _saving = true);
@@ -87,121 +91,117 @@ class _ItemEditorScreenState extends State<ItemEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final existing = widget.item?.cosKeys ?? const <CosKey>[];
+    const sectionPadding = EdgeInsets.fromLTRB(0, OSpace.xl, 0, OSpace.sm);
     return Scaffold(
       appBar: AppBar(
+        leading: Center(
+          child: OIconButton(icon: CupertinoIcons.xmark, tooltip: '关闭', filled: false, onPressed: () => Navigator.maybePop(context)),
+        ),
         title: Text(_isNew ? '登记单品' : '编辑单品'),
-        actions: [
-          TextButton(onPressed: _saving ? null : _save, child: Text(_saving ? '保存中…' : '保存')),
-        ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(OSpace.gutter, OSpace.xs, OSpace.gutter, OSpace.xl),
         children: [
           SizedBox(
-            height: 112,
+            height: _tileWidth / OAspect.asset,
             child: ListView(
               scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
               children: [
-                for (final key in existing)
-                  _PhotoBox(child: NodeImage(client: widget.store.client, objectKey: key.key)),
+                for (final key in existing) _Tile(child: NodeImage(client: widget.store.client, objectKey: key.key)),
                 for (final (i, photo) in _photos.indexed)
-                  _PhotoBox(
+                  _Tile(
                     child: Stack(fit: StackFit.expand, children: [
                       Image.memory(photo.bytes, fit: BoxFit.cover),
                       Positioned(
-                        top: 0,
-                        right: 0,
-                        child: IconButton.filledTonal(
-                          visualDensity: VisualDensity.compact,
-                          icon: const Icon(Icons.close, size: 16),
-                          onPressed: () => setState(() => _photos.removeAt(i)),
+                        top: 4,
+                        right: 4,
+                        child: Transform.scale(
+                          scale: 0.8,
+                          child: OIconButton(icon: CupertinoIcons.xmark, tooltip: '去掉', onPressed: () => setState(() => _photos.removeAt(i))),
                         ),
                       ),
                     ]),
                   ),
                 if (_photos.length < _maxNewPhotos)
-                  _PhotoBox(
+                  _Tile(
                     child: InkWell(
                       onTap: _addPhoto,
-                      child: const Center(child: Icon(Icons.add_a_photo_outlined, size: 32)),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(CupertinoIcons.camera, size: 22, color: OColors.inkSoft),
+                          SizedBox(height: OSpace.xs),
+                          Text('添加照片', style: OType.caption),
+                        ],
+                      ),
                     ),
                   ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text('平铺、光线均匀、背景干净。以后识别要用这些照片当底库。', style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 20),
-          const _Label('分类'),
-          Wrap(spacing: 8, children: [
+          const SizedBox(height: OSpace.sm),
+          const Text('平铺拍，光线均匀，背景干净。以后识别会用这些照片作底库。', style: OType.caption),
+          const OSectionHeader('Category  分类', padding: sectionPadding),
+          Wrap(spacing: OSpace.xs, runSpacing: OSpace.xs, children: [
             for (final c in Category.values)
-              ChoiceChip(label: Text(c.label), selected: _category == c, onSelected: (_) => setState(() => _category = c)),
+              OChip(label: c.label, selected: _category == c, onTap: () => setState(() => _category = c)),
           ]),
-          const SizedBox(height: 16),
-          const _Label('季节（可多选，可不填）'),
-          Wrap(spacing: 8, children: [
+          const OSectionHeader('Season  季节', trailing: '可多选，可不填', padding: sectionPadding),
+          Wrap(spacing: OSpace.xs, runSpacing: OSpace.xs, children: [
             for (final s in Season.values)
-              FilterChip(
-                label: Text(s.label),
+              OChip(
+                label: s.label,
                 selected: _seasons.contains(s),
-                onSelected: (on) => setState(() => on ? _seasons.add(s) : _seasons.remove(s)),
+                onTap: () => setState(() => _seasons.contains(s) ? _seasons.remove(s) : _seasons.add(s)),
               ),
           ]),
-          const SizedBox(height: 16),
+          const OSectionHeader('Colour  颜色', padding: sectionPadding),
           TextField(
             controller: _color,
             maxLength: 64,
-            decoration: const InputDecoration(labelText: '颜色', hintText: '藏青'),
+            style: OType.body.copyWith(fontSize: 17),
+            decoration: const InputDecoration(hintText: '用你自己的话，比如「藏青」「燕麦色」', counterText: ''),
           ),
-          const _Label('入手日期（可选）'),
+          const OSectionHeader('Acquired  入手', trailing: '可选', padding: sectionPadding),
           Row(children: [
-            TextButton.icon(
+            OButton(
+              label: _acquiredAt ?? '选择日期',
+              icon: CupertinoIcons.calendar,
+              kind: OButtonKind.secondary,
+              expand: false,
               onPressed: _pickAcquired,
-              icon: const Icon(Icons.event_outlined),
-              label: Text(_acquiredAt ?? '没填'),
             ),
             if (_acquiredAt != null)
-              IconButton(
-                tooltip: '清掉',
-                icon: const Icon(Icons.clear),
-                onPressed: () => setState(() => _acquiredAt = null),
-              ),
+              OIconButton(icon: CupertinoIcons.xmark, tooltip: '清掉日期', filled: false, onPressed: () => setState(() => _acquiredAt = null)),
           ]),
-          const SizedBox(height: 8),
-          const _Label('状态'),
-          Wrap(spacing: 8, children: [
+          const OSectionHeader('Status  状态', padding: sectionPadding),
+          Wrap(spacing: OSpace.xs, children: [
             for (final s in ItemStatus.values)
-              ChoiceChip(label: Text(s.label), selected: _status == s, onSelected: (_) => setState(() => _status = s)),
+              OChip(label: s.label, selected: _status == s, onTap: () => setState(() => _status = s)),
           ]),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(OSpace.gutter, OSpace.xs, OSpace.gutter, OSpace.md),
+          child: OButton(label: _isNew ? '放进衣橱' : '保存', busy: _saving, onPressed: _save),
+        ),
       ),
     );
   }
 }
 
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) =>
-      Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(text, style: Theme.of(context).textTheme.labelLarge));
-}
-
-class _PhotoBox extends StatelessWidget {
-  const _PhotoBox({required this.child});
+class _Tile extends StatelessWidget {
+  const _Tile({required this.child});
 
   final Widget child;
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 84,
-        margin: const EdgeInsets.only(right: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        ),
+        width: _ItemEditorScreenState._tileWidth,
+        margin: const EdgeInsets.only(right: OSpace.sm),
+        decoration: BoxDecoration(color: OColors.sand, borderRadius: BorderRadius.circular(ORadius.tile)),
         clipBehavior: Clip.antiAlias,
         child: child,
       );

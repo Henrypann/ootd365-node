@@ -1,9 +1,13 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../contract/models.dart';
 import '../node/node_client.dart';
+import 'design/components.dart';
+import 'design/tokens.dart';
 
-/// A photo stored on the node, loaded with the pairing token.
+/// A photo stored on the node, loaded with the pairing token. Fades in over sand.
 class NodeImage extends StatelessWidget {
   const NodeImage({super.key, required this.client, required this.objectKey, this.fit = BoxFit.cover});
 
@@ -12,72 +16,36 @@ class NodeImage extends StatelessWidget {
   final BoxFit fit;
 
   @override
-  Widget build(BuildContext context) => Image.network(
-        client.objectUrl(objectKey).toString(),
-        headers: client.authHeaders,
-        fit: fit,
-        errorBuilder: (context, _, _) => const ColoredBox(
-          color: Colors.black12,
-          child: Center(child: Icon(Icons.broken_image_outlined)),
+  Widget build(BuildContext context) => ColoredBox(
+        color: OColors.sand,
+        child: Image.network(
+          client.objectUrl(objectKey).toString(),
+          headers: client.authHeaders,
+          fit: fit,
+          width: double.infinity,
+          height: double.infinity,
+          frameBuilder: (context, child, frame, synchronous) => synchronous
+              ? child
+              : AnimatedOpacity(opacity: frame == null ? 0 : 1, duration: OMotion.standard, child: child),
+          errorBuilder: (context, _, _) =>
+              const Center(child: Icon(CupertinoIcons.photo, size: 22, color: OColors.inkFaint)),
         ),
       );
 }
 
-/// Square tile for an item: its first photo, or a placeholder.
-class ItemTile extends StatelessWidget {
-  const ItemTile({
-    super.key,
-    required this.client,
-    required this.coverKey,
-    required this.caption,
-    this.selected = false,
-    this.onTap,
-  });
+/// An item's cover photo, or its monogram when it has none yet.
+class ItemImage extends StatelessWidget {
+  const ItemImage({super.key, required this.client, required this.item, this.monogramSize = 36});
 
   final NodeClient client;
-  final String? coverKey;
-  final String caption;
-  final bool selected;
-  final VoidCallback? onTap;
+  final Item? item;
+  final double monogramSize;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? scheme.primary : scheme.outlineVariant, width: selected ? 3 : 1),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (coverKey != null)
-              NodeImage(client: client, objectKey: coverKey!)
-            else
-              ColoredBox(color: scheme.surfaceContainerHighest, child: const Icon(Icons.checkroom_outlined, size: 40)),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                color: Colors.black54,
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                child: Text(caption,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white, fontSize: 12)),
-              ),
-            ),
-            if (selected)
-              Positioned(top: 6, right: 6, child: Icon(Icons.check_circle, color: scheme.primary)),
-          ],
-        ),
-      ),
-    );
+    final key = item?.coverKey;
+    if (key != null) return NodeImage(client: client, objectKey: key);
+    return OMonogram(text: item?.fields.color ?? '?', size: monogramSize);
   }
 }
 
@@ -86,20 +54,28 @@ Future<PhotoUpload?> pickPhoto(BuildContext context, {ImagePicker? picker}) asyn
   final source = await showModalBottomSheet<ImageSource>(
     context: context,
     builder: (context) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo_camera_outlined),
-            title: const Text('拍照'),
-            onTap: () => Navigator.pop(context, ImageSource.camera),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('从相册选'),
-            onTap: () => Navigator.pop(context, ImageSource.gallery),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(OSpace.gutter, 0, OSpace.gutter, OSpace.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('ADD A PHOTO', style: OType.overline),
+            const SizedBox(height: OSpace.md),
+            OButton(
+              label: '拍照',
+              icon: CupertinoIcons.camera,
+              onPressed: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            const SizedBox(height: OSpace.sm),
+            OButton(
+              label: '从相册选',
+              icon: CupertinoIcons.photo_on_rectangle,
+              kind: OButtonKind.secondary,
+              onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -121,5 +97,24 @@ String photoContentType(String? mimeType, String name) {
 
 void showError(BuildContext context, Object error) {
   final message = error is NodeException ? error.userMessage : error.toString();
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  showMessage(context, message);
 }
+
+void showMessage(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(message)));
+}
+
+/// English section words for the editorial overlines; the Chinese label stays the primary name.
+String categoryOverline(Category c) => switch (c) {
+      Category.top => 'Tops',
+      Category.bottom => 'Bottoms',
+      Category.shoes => 'Shoes',
+      Category.outer => 'Outerwear',
+      Category.other => 'Accessories',
+    };
+
+/// "藏青 · 上装" style label used across cards.
+String itemTitle(Item item) => item.fields.color;
+String itemSubtitle(Item item) => '${item.fields.category.label} · 穿 ${item.wearCount} 次';

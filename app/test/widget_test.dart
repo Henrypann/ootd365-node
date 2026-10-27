@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ootd365/node/node_client.dart';
 import 'package:ootd365/state/wardrobe_store.dart';
+import 'package:ootd365/ui/design/components.dart';
+import 'package:ootd365/ui/design/tokens.dart';
 import 'package:ootd365/ui/home_shell.dart';
 import 'package:ootd365/ui/log_screen.dart';
 
@@ -55,22 +57,27 @@ void main() {
     await tester.runAsync(store.refresh);
 
     await tester.pumpWidget(MaterialApp(
-      home: LogScreen(store: store, today: () => DateTime(2026, 10, 26, 7, 30)),
+      theme: buildTheme(),
+      home: Scaffold(body: LogScreen(store: store, today: () => DateTime(2026, 10, 26, 7, 30))),
     ));
 
+    expect(find.text('October 26'), findsOneWidget);
+
     // Retired items are not offered.
-    expect(find.text('navy 上装'), findsOneWidget);
-    expect(find.text('white 上装'), findsOneWidget);
-    expect(find.text('red 上装'), findsNothing);
+    expect(find.text('navy'), findsOneWidget);
+    expect(find.text('white'), findsOneWidget);
+    expect(find.text('red'), findsNothing);
 
-    // Nothing selected: save is disabled.
-    final save = find.byType(FloatingActionButton);
-    expect(tester.widget<FloatingActionButton>(save).onPressed, isNull);
+    // Nothing selected: record is disabled.
+    final save = find.widgetWithText(OButton, '记下今天');
+    expect(tester.widget<OButton>(save).onPressed, isNull);
+    expect(find.text('点选今天穿的单品'), findsOneWidget);
 
-    await tester.tap(find.text('navy 上装'));
-    await tester.tap(find.text('white 上装'));
+    await tester.tap(find.text('navy'));
+    await tester.tap(find.text('white'));
     await tester.pump();
-    expect(find.text('记下 2 件'), findsOneWidget);
+    expect(find.text('已选 2 件'), findsOneWidget);
+    expect(tester.widget<OButton>(save).onPressed, isNotNull);
 
     await tester.runAsync(() async {
       await tester.tap(save);
@@ -85,12 +92,12 @@ void main() {
         'item_ids': ['item_tee', 'item_shirt'],
       },
     ]);
-    expect(find.text('记下 0 件'), findsOneWidget);
+    expect(find.text('点选今天穿的单品'), findsOneWidget);
   });
 
-  // Today and Wardrobe both keep a FAB alive in one IndexedStack; with the default hero tag,
-  // pushing any route threw "multiple heroes share the same tag".
-  testWidgets('pushing a route from the tabs does not clash FAB heroes', (tester) async {
+  // All three tabs stay alive in one IndexedStack; pushing a route from one of them must not
+  // trip over widgets the others keep (this once threw "multiple heroes share the same tag").
+  testWidgets('pushing a route from the tabs works', (tester) async {
     final store = WardrobeStore(
       NodeClient(baseUrl: Uri.parse('http://node:8365'), token: 't', client: MockClient(_FakeNode().handle)),
     );

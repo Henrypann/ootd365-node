@@ -1,13 +1,19 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../contract/models.dart';
 import '../state/wardrobe_store.dart';
+import 'design/components.dart';
+import 'design/tokens.dart';
+import 'home_shell.dart';
 import 'widgets.dart';
 
+/// Archive: an editorial timeline, grouped by month. Outfits lead with their photo; washes stay quiet.
 class HistoryScreen extends StatelessWidget {
-  const HistoryScreen({super.key, required this.store});
+  const HistoryScreen({super.key, required this.store, this.settings});
 
   final WardrobeStore store;
+  final Widget? settings;
 
   @override
   Widget build(BuildContext context) {
@@ -15,57 +21,211 @@ class HistoryScreen extends StatelessWidget {
       listenable: store,
       builder: (context, _) {
         final events = store.events;
-        if (events.isEmpty) return const Center(child: Text('还没有记录。'));
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: events.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, i) {
-            final event = events[i];
-            final items = [for (final id in event.itemIds) store.index.byId(id)];
-            return ListTile(
-              leading: Icon(event.type == EventType.wear ? Icons.checkroom_outlined : Icons.local_laundry_service_outlined),
-              title: Text('${event.date} · ${event.type.label}'),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: SizedBox(
-                  height: 48,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      if (event.lookKey != null) _Thumb(child: NodeImage(client: store.client, objectKey: event.lookKey!.key)),
-                      for (final item in items)
-                        _Thumb(
-                          child: item?.coverKey != null
-                              ? NodeImage(client: store.client, objectKey: item!.coverKey!)
-                              : Center(child: Text(item?.fields.color ?? '?', style: const TextStyle(fontSize: 10))),
-                        ),
-                    ],
-                  ),
+        final wearDays = {for (final e in events) if (e.type == EventType.wear) e.date}.length;
+        final months = <String, List<WardrobeEvent>>{};
+        for (final e in events) {
+          months.putIfAbsent(e.date.substring(0, 7), () => []).add(e);
+        }
+        return ORefresh(
+          onRefresh: store.refresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: OMasthead(
+                  overline: 'Life archive',
+                  title: 'Archive',
+                  subtitle: events.isEmpty ? null : '记下了 $wearDays 天的穿搭',
+                  actions: [?settings],
                 ),
               ),
-            );
-          },
+              if (events.isEmpty)
+                const SliverToBoxAdapter(
+                  child: OEmpty(line: 'Your archive begins today.', body: '在「今天」记下第一套穿搭，它会出现在这里。'),
+                )
+              else
+                for (final MapEntry(key: month, value: monthEvents) in months.entries) ...[
+                  SliverToBoxAdapter(child: _MonthHeader(month)),
+                  SliverList.builder(
+                    itemCount: monthEvents.length,
+                    itemBuilder: (context, i) {
+                      final event = monthEvents[i];
+                      return event.type == EventType.wear
+                          ? _WearEntry(event: event, store: store)
+                          : _WashEntry(event: event, store: store);
+                    },
+                  ),
+                ],
+              const SliverToBoxAdapter(child: SizedBox(height: OSpace.xxl)),
+            ],
+          ),
         );
       },
     );
   }
 }
 
-class _Thumb extends StatelessWidget {
-  const _Thumb({required this.child});
+class _MonthHeader extends StatelessWidget {
+  const _MonthHeader(this.month);
 
-  final Widget child;
+  /// `YYYY-MM`
+  final String month;
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: 48,
-        margin: const EdgeInsets.only(right: 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: child,
-      );
+  Widget build(BuildContext context) {
+    final date = ODate.parse('$month-01');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(OSpace.gutter, OSpace.xl, OSpace.gutter, OSpace.md),
+      child: Row(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(ODate.month(date), style: OType.headline),
+              const SizedBox(width: OSpace.xs),
+              Text('${date.year}', style: OType.serifItalic.copyWith(color: OColors.inkMuted)),
+            ],
+          ),
+          const SizedBox(width: OSpace.md),
+          const Expanded(child: Divider()),
+        ],
+      ),
+    );
+  }
+}
+
+/// Day number in serif with the weekday under it.
+class _DateMark extends StatelessWidget {
+  const _DateMark(this.date, {this.quiet = false});
+
+  final String date;
+  final bool quiet;
+
+  @override
+  Widget build(BuildContext context) {
+    final day = ODate.parse(date);
+    return SizedBox(
+      width: 52,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${day.day}',
+              style: OType.numeral.copyWith(fontSize: quiet ? 22 : 34, color: quiet ? OColors.inkFaint : OColors.ink)),
+          const SizedBox(height: 2),
+          Text(ODate.weekdayZh(day), style: OType.caption.copyWith(color: quiet ? OColors.inkFaint : OColors.inkMuted)),
+        ],
+      ),
+    );
+  }
+}
+
+class _WearEntry extends StatelessWidget {
+  const _WearEntry({required this.event, required this.store});
+
+  final WardrobeEvent event;
+  final WardrobeStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [for (final id in event.itemIds) store.index.byId(id)];
+    final names = [for (final i in items) if (i != null) i.fields.color].join('、');
+    final look = event.lookKey;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(OSpace.gutter, OSpace.sm, OSpace.gutter, OSpace.lg),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DateMark(event.date),
+          const SizedBox(width: OSpace.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (look != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(ORadius.card),
+                    child: AspectRatio(
+                      aspectRatio: OAspect.look,
+                      child: NodeImage(client: store.client, objectKey: look.key),
+                    ),
+                  ),
+                  const SizedBox(height: OSpace.sm),
+                ],
+                Wrap(
+                  spacing: OSpace.xs,
+                  runSpacing: OSpace.xs,
+                  children: [
+                    for (final item in items)
+                      SizedBox(
+                        width: look == null ? 64 : 44,
+                        child: AspectRatio(
+                          aspectRatio: OAspect.asset,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(ORadius.tile - 6),
+                            child: ItemImage(client: store.client, item: item, monogramSize: 16),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: OSpace.xs),
+                Text('${items.length} 件 · $names', maxLines: 2, overflow: TextOverflow.ellipsis, style: OType.caption),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WashEntry extends StatelessWidget {
+  const _WashEntry({required this.event, required this.store});
+
+  final WardrobeEvent event;
+  final WardrobeStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [for (final id in event.itemIds) store.index.byId(id)];
+    final names = [for (final i in items) if (i != null) i.fields.color].join('、');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(OSpace.gutter, OSpace.xs, OSpace.gutter, OSpace.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DateMark(event.date, quiet: true),
+          const SizedBox(width: OSpace.sm),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(OSpace.sm),
+              decoration: BoxDecoration(color: OColors.surface, borderRadius: BorderRadius.circular(ORadius.tile)),
+              child: Row(
+                children: [
+                  const Icon(CupertinoIcons.drop, size: 16, color: OColors.clay),
+                  const SizedBox(width: OSpace.xs),
+                  Expanded(
+                    child: Text('洗涤 · $names', maxLines: 1, overflow: TextOverflow.ellipsis, style: OType.label),
+                  ),
+                  for (final item in items.take(4))
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: SizedBox(
+                        width: 24,
+                        height: 32,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: ItemImage(client: store.client, item: item, monogramSize: 11),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

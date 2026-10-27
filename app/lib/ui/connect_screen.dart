@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../node/node_client.dart';
 import '../node/node_settings.dart';
+import 'design/components.dart';
+import 'design/tokens.dart';
 
 /// Pairs the app with a node: address plus the token `npm run serve` prints.
 class ConnectScreen extends StatefulWidget {
@@ -52,36 +55,57 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.canPop(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('连接节点')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Text('在家里的电脑或 Pi 上运行 npm run serve，把它打印的地址和令牌填在这里。手机要和它在同一个 Wi-Fi。'),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _url,
-            keyboardType: TextInputType.url,
-            autocorrect: false,
-            decoration: const InputDecoration(labelText: '地址', hintText: 'http://192.168.1.5:8365'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _token,
-            autocorrect: false,
-            enableSuggestions: false,
-            decoration: const InputDecoration(labelText: '令牌'),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(OSpace.gutter, OSpace.md, OSpace.gutter, OSpace.xl),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: canPop
+                  ? OIconButton(icon: CupertinoIcons.chevron_back, tooltip: '返回', filled: false, onPressed: () => Navigator.maybePop(context))
+                  : const SizedBox(height: 40),
+            ),
+            const SizedBox(height: OSpace.xl),
+            const Text('ootd365', style: TextStyle(fontFamily: OType.serif, fontSize: 56, height: 1, color: OColors.ink, letterSpacing: -1)),
+            const SizedBox(height: OSpace.sm),
+            Text('Your wardrobe, your days,\nkept at home.', style: OType.serifItalic.copyWith(fontSize: 22, height: 1.3)),
+            const SizedBox(height: OSpace.lg),
+            const Text('照片和记录都存在你家里的电脑或 Pi 上。在那台机器运行 npm run serve，把它打印的地址和令牌填在这里，手机和它连同一个 Wi-Fi。', style: OType.bodyMuted),
+            const SizedBox(height: OSpace.xl),
+            TextField(
+              controller: _url,
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              style: OType.body.copyWith(fontSize: 17),
+              decoration: const InputDecoration(labelText: 'NODE ADDRESS  地址', hintText: '192.168.1.5:8365'),
+            ),
+            const SizedBox(height: OSpace.lg),
+            TextField(
+              controller: _token,
+              autocorrect: false,
+              enableSuggestions: false,
+              style: OType.body.copyWith(fontSize: 17),
+              decoration: const InputDecoration(labelText: 'PAIRING TOKEN  令牌'),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: OSpace.md),
+              Text(_error!, style: OType.label.copyWith(color: OColors.error, height: 1.45)),
+            ],
+            const SizedBox(height: OSpace.xl),
+            OButton(label: '连接', busy: _busy, onPressed: _connect),
+            const SizedBox(height: OSpace.md),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.lock, size: 13, color: OColors.inkFaint),
+                SizedBox(width: 6),
+                Text('令牌只存在这台手机的钥匙串里', style: OType.caption),
+              ],
+            ),
           ],
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _busy ? null : _connect,
-            child: Text(_busy ? '连接中…' : '连接'),
-          ),
-        ],
+        ),
       ),
     );
   }
