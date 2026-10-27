@@ -135,6 +135,8 @@ class _LogScreenState extends State<LogScreen> {
             ],
           ),
           floatingActionButton: FloatingActionButton.extended(
+            // The tabs live in one IndexedStack, so each FAB needs its own hero tag.
+            heroTag: 'log-save',
             onPressed: _selected.isEmpty || _saving ? null : _save,
             icon: const Icon(Icons.check),
             label: Text(_saving ? '保存中…' : '记下 ${_selected.length} 件'),

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ootd365/node/node_client.dart';
 import 'package:ootd365/state/wardrobe_store.dart';
+import 'package:ootd365/ui/home_shell.dart';
 import 'package:ootd365/ui/log_screen.dart';
 
 Map<String, dynamic> _item(String id, String color, {String status = 'active'}) => {
@@ -85,5 +86,25 @@ void main() {
       },
     ]);
     expect(find.text('记下 0 件'), findsOneWidget);
+  });
+
+  // Today and Wardrobe both keep a FAB alive in one IndexedStack; with the default hero tag,
+  // pushing any route threw "multiple heroes share the same tag".
+  testWidgets('pushing a route from the tabs does not clash FAB heroes', (tester) async {
+    final store = WardrobeStore(
+      NodeClient(baseUrl: Uri.parse('http://node:8365'), token: 't', client: MockClient(_FakeNode().handle)),
+    );
+    await tester.runAsync(store.refresh);
+    await tester.pumpWidget(MaterialApp(home: HomeShell(store: store, onOpenConnect: () {})));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pump();
+
+    await tester.tap(find.text('衣橱').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('登记单品'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('登记单品'), findsOneWidget);
   });
 }

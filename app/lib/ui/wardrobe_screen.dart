@@ -83,6 +83,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
             ],
           ),
           floatingActionButton: FloatingActionButton(
+            heroTag: 'wardrobe-add',
             tooltip: '登记单品',
             onPressed: () => Navigator.push(
               context,
